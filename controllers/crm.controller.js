@@ -58,3 +58,52 @@ exports.createContact = async (req, res, next) => {
     });
   }
 };
+
+// @desc   Get single contact
+// @route  GET /getContact
+exports.getContact = async (req, res, next) => {
+  const { contact_id, data_store } = req.body;
+
+  if (data_store == "CRM") {
+    const options = {
+      method: "GET",
+      headers: {
+        Authorization: `Token token=${process.env.AUTH_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    };
+    try {
+      const fetchRes = await fetch(
+        `https://interactly-476797496188262170.myfreshworks.com/crm/sales/api/contacts/${contact_id}`,
+        options
+      );
+      const response = await fetchRes.json();
+      res.status(200).json({ success: true, data: response });
+    } catch (err) {
+      if (process.env.NODE_ENV == "development") {
+        console.log("err: ", err);
+      }
+      res.status(404).json({ success: false, error: err.message });
+    }
+  } else if (data_store == "DATABASE") {
+    sql.query(
+      "SELECT * FROM contacts WHERE id=?",
+      [contact_id],
+      (err, result) => {
+        if (err) {
+          // Log errors only in development mode
+          if (process.env.NODE_ENV == "development") {
+            console.log("err: ", err);
+          }
+          res.status(500).json({ success: false, error: err.message });
+          return;
+        }
+        res.status(200).json({ success: true, data: result });
+      }
+    );
+  } else {
+    res.status(400).json({
+      error: "Please provide data_store parameter value as 'CRM' or 'DATABASE'",
+    });
+  }
+};

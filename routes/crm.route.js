@@ -1,7 +1,8 @@
 const router = require("express").Router();
 
-const { createContact } = require("../controllers/crm.controller");
+const { createContact, getContact } = require("../controllers/crm.controller");
 
 router.post("/createContact", createContact);
+router.get("/getContact", getContact);
 
 module.exports = router;
