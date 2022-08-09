@@ -54,6 +54,7 @@ exports.createContact = async (req, res, next) => {
     );
   } else {
     res.status(400).json({
+      success: false,
       error: "Please provide data_store parameter value as 'CRM' or 'DATABASE'",
     });
   }
@@ -83,7 +84,7 @@ exports.getContact = async (req, res, next) => {
       if (process.env.NODE_ENV == "development") {
         console.log("err: ", err);
       }
-      res.status(404).json({ success: false, error: err.message });
+      res.status(500).json({ success: false, error: err.message });
     }
   } else if (data_store == "DATABASE") {
     sql.query(
@@ -103,6 +104,7 @@ exports.getContact = async (req, res, next) => {
     );
   } else {
     res.status(400).json({
+      success: false,
       error: "Please provide data_store parameter value as 'CRM' or 'DATABASE'",
     });
   }
@@ -145,7 +147,7 @@ exports.updateContact = async (req, res, next) => {
     sql.query(
       "UPDATE contacts SET email=?,mobile_number=? WHERE id='?'",
       [new_email, new_mobile_number, contact_id],
-      (err,result) => {
+      (err, result) => {
         if (err) {
           // Log errors only in development mode
           if (process.env.NODE_ENV == "development") {
@@ -159,6 +161,60 @@ exports.updateContact = async (req, res, next) => {
     );
   } else {
     res.status(400).json({
+      success: false,
+      error: "Please provide data_store parameter value as 'CRM' or 'DATABASE'",
+    });
+  }
+};
+
+// @desc   Delete single contact
+// @route  POST /deleteContact
+exports.deleteContact = async (req, res, next) => {
+  const { contact_id, data_store } = req.body;
+
+  if (data_store == "CRM") {
+    const options = {
+      method: "DELETE",
+      headers: {
+        Authorization: `Token token=${process.env.AUTH_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    };
+    try {
+      const fetchRes = await fetch(
+        `https://interactly-476797496188262170.myfreshworks.com/crm/sales/api/contacts/${contact_id}`,
+        options
+      );
+      await fetchRes.json();
+      res.status(200).json({ success: true, res: "Contact deleted" });
+    } catch (err) {
+      if (process.env.NODE_ENV == "development") {
+        console.log("err: ", err);
+      }
+      res.status(500).json({ success: false, error: err.message });
+    }
+  } else if (data_store == "DATABASE") {
+    sql.query(
+      "DELETE FROM contacts WHERE id=?",
+      [contact_id],
+      (err, result) => {
+        if (err) {
+          // Log errors only in development mode
+          if (process.env.NODE_ENV == "development") {
+            console.log("err: ", err);
+          }
+          res.status(500).json({ success: false, error: err.message });
+          return;
+        } else if (result.affectedRows < 1) {
+          res.status(404).json({ res: "Contact not found" });
+          return;
+        }
+        res.status(200).json({ success: true, res: "Contact deleted" });
+      }
+    );
+  } else {
+    res.status(400).json({
+      success: false,
       error: "Please provide data_store parameter value as 'CRM' or 'DATABASE'",
     });
   }
